@@ -9,20 +9,19 @@
 
 This repository contains the code and data to reproduce the results and figures from the study:
 
-**Daniel Koch, Ulrike Feudel, Aneta Koseska (2025).**  
+Daniel Koch, Ulrike Feudel, Aneta Koseska (2025).  
 **_Criticality governs response dynamics and entrainment of periodically forced ghost cycles._**  
 _Physical Review E_, **XX**: XXXX–XXXX.
 
-[Link to publication (coming soon)](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.047202)
+[Link to publication (coming soon)](https://journals.aps.org/)
 
 If you use this repository in your research, please cite the original paper.
 
 ## Background
 
-Ghost cycles are a class of limit cycles characterized by the presence of one or more **ghost attractors** that are visited sequentially along the orbit and which transiently capture trajectories, leading to a separation of timescales—reminiscent of slow-fast dynamical systems. The concept of ghost cycles was first introduced in: [Koch D., et al, Phys. Rev. Lett. 133, 047202 (2024)](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.047202).
+Ghost cycles are a class of limit cycles characterized by the presence of one or more **ghost attractors** that are visited sequentially along the orbit and which transiently capture trajectories, leading to a separation of timescales—reminiscent of slow-fast dynamical systems. The concept of ghost cycles was first introduced in: [Koch D. et al., Phys. Rev. Lett. 133, 047202 (2024)](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.047202).
 
-This study explores the dynamics of ghost cycles under periodic forcing and compares them with classical slow-fast oscillators. The findings highlight how **criticality**—the proximity to a bifurcation point—governs the response dynamics of these systems.
-
+This study explores the dynamics of ghost cycles under periodic forcing and compares them with classical slow-fast oscillators. The findings highlight how **criticality**—the proximity to a bifurcation point—governs the response dynamics of periodically forced ghost cycles.
 
 ## Getting Started
 
@@ -35,21 +34,18 @@ To recreate the figures and simulations, you’ll need:
 
 ### Running Code
 
-    Main Figures:
-    Run any of the FigureX.py scripts (e.g. Figure1.py, Figure2.py, etc.) to generate the main figures from the paper.
+- Main Figures:
+Run any of the `FigureX.py` scripts (e.g. `Figure1.py`, `Figure2.py`, etc.) to generate the main figures from the paper.
 
-    Supplementary Figures & Videos:
-    Use SupplementaryFigureX.py and SupplementaryVideos.py to reproduce additional analyses and visuals.
+Supplementary Figures & Videos:
+- Use `SupplementaryFigureX.py` and `SupplementaryVideos.py` to reproduce additional analyses and visuals.
 
-    Ensure that models.py and functions.py are located in the same directory as the script you're executing.
+Ensure that `models.py` and `functions.py` are located in the parent directory of the script you're executing.
 
 ### Bifurcation Analysis
 
-Bifurcation diagrams can be generated using the models provided in the XPP files directory. To run these models, you need to install XPP/XPPAUT (https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html) for running the .ode files.
+Bifurcation diagrams can be generated using the models provided in the XPP files directory. For running the `.ode` files you need to install [XPP/XPPAUT](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html).
 
 ## Contact
 
-For questions or additional information, please contact:
-
-**Daniel Koch**
-📧 dkoch.research@protonmail.com
+For questions or additional information, please contact Daniel Koch: dkoch.research@protonmail.com
