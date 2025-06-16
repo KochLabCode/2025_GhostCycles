@@ -5,7 +5,7 @@
 - Article: 
   
 <p align="center">
-<img src="https://github.com/maneesh51/Homeorhesis/blob/main/HomeoScheme.png">
+<img src="https://github.com/KochLabCode/2025_GhostCycles/blob/main/ChatGPT%20Image%20Jun%2016%2C%202025%2C%2012_19_19%20PM.png">
 </p>
 
 
