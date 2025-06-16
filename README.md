@@ -15,15 +15,14 @@ _Physical Review E_, **XX**: XXXX–XXXX.
 
 [Link to publication (coming soon)](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.047202)
 
+If you use this repository in your research, please cite the original paper.
+
 ## Background
 
-Ghost cycles are a class of limit cycles characterized by the presence of one or more **ghost attractors** along the orbit. These ghost attractors sequentially capture trajectories, leading to a separation of timescales—reminiscent of slow-fast dynamical systems.
+Ghost cycles are a class of limit cycles characterized by the presence of one or more **ghost attractors** that are visited sequentially along the orbit and which transiently capture trajectories, leading to a separation of timescales—reminiscent of slow-fast dynamical systems. The concept of ghost cycles was first introduced in: [Koch D., et al, Phys. Rev. Lett. 133, 047202 (2024)](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.047202).
 
-This study explores the dynamics of ghost cycles under periodic forcing and compares them with classical slow-fast oscillators. The findings highlight how **criticality**—the proximity to a bifurcation point—governs both the **response dynamics** and **entrainment behavior** of these systems.
+This study explores the dynamics of ghost cycles under periodic forcing and compares them with classical slow-fast oscillators. The findings highlight how **criticality**—the proximity to a bifurcation point—governs the response dynamics of these systems.
 
-The concept of ghost cycles was first introduced in:  
-[Koch D., et al, Phys. Rev. Lett. 133, 047202 (2024)](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.047202)  
-(please include full citation when available)
 
 ## Getting Started
 
@@ -32,15 +31,9 @@ The concept of ghost cycles was first introduced in:
 To recreate the figures and simulations, you’ll need:
 
 - Python 3.x  
-- Required Python packages (installable via `ghostCycles_pythonEnvironment.yaml`)
+- Required Python packages (installable via the environment `ghostCycles_pythonEnvironment.yaml`)
 
-To set up the environment, run:
-
-```bash
-conda env create -f ghostCycles_pythonEnvironment.yaml
-conda activate ghostCycles
-
-Running Code
+### Running Code
 
     Main Figures:
     Run any of the FigureX.py scripts (e.g. Figure1.py, Figure2.py, etc.) to generate the main figures from the paper.
@@ -50,26 +43,13 @@ Running Code
 
     Ensure that models.py and functions.py are located in the same directory as the script you're executing.
 
-Bifurcation Analysis
+### Bifurcation Analysis
 
-Bifurcation diagrams can be generated using the models provided in the XPP files directory.
+Bifurcation diagrams can be generated using the models provided in the XPP files directory. To run these models, you need to install XPP/XPPAUT (https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html) for running the .ode files.
 
-To perform bifurcation analysis:
-
-    Install XPP/XPPAUT
-
-    Open the .ode files using XPP
-
-    Follow the simulation instructions included in the comments of each file
-
-Citation
-
-If you use this repository in your research, please cite the original paper (citation to be added upon publication).
-You may also reference the original concept of ghost cycles introduced in:
-Phys. Rev. Lett. 133, 047202 (2024)
-Contact
+## Contact
 
 For questions or additional information, please contact:
 
-Daniel Koch
+**Daniel Koch**
 📧 dkoch.research@protonmail.com
