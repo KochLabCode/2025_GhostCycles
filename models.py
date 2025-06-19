@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Apr  6 18:11:25 2024
+This code features all models and model-related functions (jacobians, nullclines) used in the paper:
 
-@author: Daniel
+    Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+    Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+    Physical Review E, XX: XXXX-XXXX.
+    
+Copyright: Daniel Koch
 """
 import numpy as np
 
@@ -36,18 +40,12 @@ def vanDerPol_na(t,z,para):
 
 def vanDerPol_1g_na(t,z,para):
     eps,alpha,A,omega=para
-    # dx=1/eps*(z[0]-1/3*z[0]**3-z[1]) 
-    # dy=eps*z[0] + alpha*((z[1]+0.7)-1/3*(z[1]+0.7)**3)*((1+np.tanh((z[1]+0.7)))/2)**10  + A*np.sin(omega*t)    
     dx=1/eps*(z[1]-1/3*z[0]**3+z[0])
-    dy=-z[0] + alpha*((z[1]+0.7)-1/3*(z[1]+0.7)**3)*((1+np.tanh((z[1]+0.7)))/2)**10 + A*np.sin(omega*t)
-    
-    
+    dy=-z[0] + alpha*((z[1]+0.7)-1/3*(z[1]+0.7)**3)*((1+np.tanh((z[1]+0.7)))/2)**10 + A*np.sin(omega*t)    
     return np.array([dx, dy])
 
 def vanDerPol_2g_na(t,z,para):
     eps,alpha,A,omega=para
-    # dx=1/eps*(z[0]-1/3*z[0]**3-z[1]) 
-    # dy = eps*z[0] + alpha*z[1] - alpha/3*z[1]**3 + A*np.sin(omega*t)
     dx=1/eps*(z[1]-1/3*z[0]**3+z[0])
     dy = -z[0] + alpha*(z[1] - 1/3*z[1]**3) + A*np.sin(omega*t)
     return np.array([dx, dy])
@@ -60,7 +58,7 @@ def vanDerPol_2g_na_alt(t,z,para):
     return np.array([dx, dy])
 
 
-# Non-autonomous systems transformed into autonomous formulation
+# Non-autonomous systems transformed into autonomous formulation via additional variable z
 
 def vanDerPol_na_aut(t,z,para):
     eps,tau,A,omega=para
@@ -147,27 +145,35 @@ def vanDerPol_2g_constForce(t,z,para):
     dy = -z[0] + alpha*(z[1] - 1/3*z[1]**3) + A
     return np.array([dx, dy])
 
+# Nullclines of Van der Pol based models
 
+def xNC(x):
+    return x**3/3-x
 
-# Generic non-autonomous versions of Van der Pol based models
+def yNC_vdp(y,p):
+    A = p
+    return 0*y+A
 
-def vanDerPol_nag(t,z,para):
-    eps,tau,A,fa,para_fa =para  
-    dx=1/eps*(z[1]-1/3*z[0]**3+z[0])
-    dy=-z[0] + A*fa(t,para_fa)
-    return np.array([dx, dy])/tau
+def yNC_1g(y,p):
+    eps,a,A,omega = p
+    return a*((y+0.7)-1/3*(y+0.7)**3)*((1+np.tanh(y+0.7))/2)**10+A
 
-def vanDerPol_1g_nag(t,z,para):
-    eps,alpha,A,fa,para_fa =para  
-    dx = 1/eps*(z[1]-1/3*z[0]**3+z[0])
-    dy = -z[0] + alpha*((z[1]+0.7)-1/3*(z[1]+0.7)**3)*((1+np.tanh((z[1]+0.7)))/2)**10 + A*fa(t,para_fa)  
-    return np.array([dx, dy])
+def yNC_2g(y,p):
+    eps,a,A,omega = p
+    return a*(y-1/3*y**3)+A
 
-def vanDerPol_2g_nag(t,z,para):
-    eps,alpha,A,fa,para_fa =para  
-    dx=1/eps*(z[1]-1/3*z[0]**3+z[0])
-    dy = -z[0] + alpha*(z[1] - 1/3*z[1]**3) + A*fa(t,para_fa) 
-    return np.array([dx, dy])
+def yNC_vdp_na(y,p,t):
+    eps,tau,A,omega = p
+    return 0*y + A*np.sin(omega*t)  
+
+def yNC_1g_na(y,p,t):
+    eps,a,A,omega = p
+    return a*((y+0.7)-1/3*(y+0.7)**3)*((1+np.tanh(y+0.7))/2)**10 + A*np.sin(omega*t)  
+
+def yNC_2g_na(y,p,t):
+    eps,a,A,omega = p
+    return a*(y-1/3*y**3) + A*np.sin(omega*t)   
+
 
 # Dynamics on critical manifold of VdP2G
 
@@ -277,25 +283,3 @@ def vanNes2007_na_aut_jac(x, params):
         [dZdV,dZdPw,dZdZ]
         ])
     return J
-
-
-# Nullclines
-
-def xNC(x):
-    return x**3/3-x
-
-def yNC_vdp(y,p):
-    A = p
-    return 0*y+A
-
-def yNC_1g(y,p):
-    eps,a,A,omega = p
-    return a*((y+0.7)-1/3*(y+0.7)**3)*((1+np.tanh(y+0.7))/2)**10+A
-
-def yNC_2g(y,p):
-    eps,a,A,omega = p
-    return a*(y-1/3*y**3)+A
-
-def yNC_2g_na(y,p,t):
-    eps,a,A,omega = p
-    return a*(y-1/3*y**3) + A*np.sin(omega*t)   

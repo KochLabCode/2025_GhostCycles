@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Apr  7 19:34:53 2024
+This code reproduces Figure 3 from the paper:
 
-@author: Daniel Koch
+    Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+    Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+    Physical Review E, XX: XXXX-XXXX.
+    
+Copyright: Daniel Koch
 """
+
+# Import packages and modules
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pylab
@@ -11,8 +18,6 @@ from scipy.signal import find_peaks, argrelextrema
 from scipy.integrate import solve_ivp
 from scipy.integrate import quad
 from scipy.optimize import root_scalar
-
-from tqdm import tqdm
 
 import os
 import sys
@@ -73,20 +78,20 @@ para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A
 
 T0 = []
 
-for m in range(3):
+for m_idx in range(3):
     
     #transient phase
-    solution = solve_ivp(models[m], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
-                          args=([para[m]]), method='LSODA') 
+    solution = solve_ivp(models[m_idx], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
+                          args=([para[m_idx]]), method='LSODA') 
     
     #post transient
     IC = solution.y[:,solution.y.shape[1]-1]
-    solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
-                          t_eval=time, args=([para[m]]), method='LSODA') 
+    solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+                          t_eval=time, args=([para[m_idx]]), method='LSODA') 
         
     xGrad = np.gradient(solution.y[0,:])
     
-    if m==0:
+    if m_idx==0:
         peaks_out, _ = find_peaks(xGrad,height=0.15)
     else:
         peaks_out, _ = find_peaks(xGrad,height=0.33)
@@ -101,39 +106,39 @@ for m in range(3):
 
 model_lbls = ['VdP','VdP$_{1g}$','VdP$_{2g}$']
 
-m = 2
+m_idx = 2
 newFig=plt.figure(figsize=(17.2*inCm,12.5*inCm))    
 
 AmpFreqPairs = [(0.125,1),(0.125,4.75),(0.125,5.25)]
 
 frames = [[177,199,79,109],[46,54,56,67], [57,65,69,78]]
 
-for k in tqdm(range(3)):
+for k in range(3):
 
     A, fold_unforced = AmpFreqPairs[k]
-    model_lbl = model_lbls[m]
+    model_lbl = model_lbls[m_idx]
     
-    omega=fold_unforced*2*np.pi/T0[m]
+    omega=fold_unforced*2*np.pi/T0[m_idx]
     para = [eps,a_bif[1]-eps_bif,A,omega]
     yNCfunc = mod.yNC_2g_na
     nth =  1
-    t_end = 1.5*T0[m]
+    t_end = 1.5*T0[m_idx]
     dt = 0.025
     
     def current_model(t,z):
-        return models[m](t,z,para)
+        return models[m_idx](t,z,para)
     
     t_tr = 100; npts = int(t_end/dt); time = np.linspace(0,t_end,npts+1) 
     
     # Simulation 
      
     #transient phase
-    solution = solve_ivp(models[m], (0,t_tr), np.array([0.12,0.1]), rtol=1.e-6, atol=1.e-6,
+    solution = solve_ivp(models[m_idx], (0,t_tr), np.array([0.12,0.1]), rtol=1.e-6, atol=1.e-6,
                           args=([para]), method='LSODA') 
     
     #post transient
     IC = solution.y[:,solution.y.shape[1]-1]
-    solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+    solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
                           t_eval=time, args=([para]), method='LSODA') 
         
     # plot trajectories
@@ -163,7 +168,7 @@ for k in tqdm(range(3)):
         
     k_col = 0
  
-    for i in tqdm(frames[k]):
+    for i in frames[k]:
         
         sp_idx = 1 + k*4 + k_col
         
@@ -189,7 +194,7 @@ for k in tqdm(range(3)):
         
         
         if simDat_red[0,ridx] > 1.7 and simDat_red[1,ridx] > 0:
-            plt.plot(simDat_red[1,ridx], Vy(simDat_red[1,ridx], t, para),'o', color=colors[m],ms=4.5)
+            plt.plot(simDat_red[1,ridx], Vy(simDat_red[1,ridx], t, para),'o', color=colors[m_idx],ms=4.5)
         
         plt.ylim(0,1.1)
         

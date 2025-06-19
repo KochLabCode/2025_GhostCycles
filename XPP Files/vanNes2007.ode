@@ -1,0 +1,33 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# Model 2 from Van Nes et al. 2007, https://doi.org/10.1007/s10021-006-0176-0
+# Used to produce bifurcation diagram shown in Figure 7a of the paper:
+#
+# Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+# Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+# Physical Review E, XX: XXXX-XXXX.
+# 
+# Copyright: Daniel Koch
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+par pE=5,rV=0.07,hE=1,gammaE=30
+par pwin=0.08565,tau=475,g=7.59e-5,pSOD=10,HSOD=1.52,lSOD=0.01,hV=0.2,kV=0.05
+
+E=gammaE*pw*hV/(hV+v)
+SOD=kV*v/lSOD
+
+v'=rV*v*(1-(v*(hE^pE+E^pE)/(hE^pE)))
+pw'=(pwin-pw)/tau+g*(SOD^pSOD/(SOD^pSOD+HSOD^pSOD))
+
+
+v(0)=0
+pw(0)=0uu
+
+@ total=80,xp=pw,yp=v,xlo=0,xhi=.5,ylo=0,yhi=1.5
+@ dt=.5
+
+# Some AUTO parameters
+@ autovar=x,autoxmin=0,autoymin=-5,autoxmax=20,autoymax=5
+@ ntst=500,nmax=2500,npr=500,ds=-0.001,dsmin=0.0001,dsmax=0.01
+@ ncol=4,epsl=1e-5,parmin=2,parmax=5,normmin=0,normmax=1000
+@ epsu=2e-4,epss=0.0001
+done

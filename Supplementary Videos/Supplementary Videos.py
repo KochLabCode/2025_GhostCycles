@@ -1,9 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Apr  7 19:34:53 2024
+This code reproduces Supplementary Videos 1-8 from the paper:
 
-@author: Daniel Koch
+    Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+    Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+    Physical Review E, XX: XXXX-XXXX.
+    
+Note: for generation of *.mp4 files you need to install ffmpeg for ffmpy to work (https://www.gyan.dev/ffmpeg/builds)
+See e.g. https://www.wikihow.com/Install-FFmpeg-on-Windows
+    
+Copyright: Daniel Koch
 """
+
+onlyGIF = True # set to "True" if you haven't installed ffmpeg ir only want to generate *.gif files
+
+# Import packages and modules
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pylab
@@ -11,21 +22,10 @@ from scipy.signal import find_peaks, argrelextrema
 from scipy.integrate import solve_ivp
 from scipy.integrate import quad
 from scipy.optimize import root_scalar
-
 from tqdm import tqdm
-
-
 import glob
 from PIL import Image
 import ffmpy 
-
-"""
-Note: for generation of *.mp4 files you need to install ffmpeg 
-for ffmpy to work (https://www.gyan.dev/ffmpeg/builds)
-see e.g. https://www.wikihow.com/Install-FFmpeg-on-Windows
-"""
-onlyGIF = True # set to "True" if you haven't installed ffmpeg ir only want to generate *.gif files
-
 import os
 import sys
 
@@ -84,30 +84,8 @@ def vector_field_na(t,current_model,grid,dim):
                 U[i,j],V[i,j]=current_model(t,[Xg[i,j],Yg[i,j]])
         return U,V
 
-# Nullclines etc
-def xNC(x):
-    return x**3/3-x
 
-def yNC_na(y,p,t):
-    eps,tau,A,omega = p
-    return 0*y + A*np.sin(omega*t)  
-
-def yNC_1g_na(y,p,t):
-    eps,a,A,omega = p
-    return a*((y+0.7)-1/3*(y+0.7)**3)*((1+np.tanh(y+0.7))/2)**10 + A*np.sin(omega*t)   
-
-def yNC_2g_na(y,p,t):
-    eps,a,A,omega = p
-    return a*(y-1/3*y**3) + A*np.sin(omega*t)   
-
-# def yNC_2g(y,p):
-#     eps,a,A,omega = p
-#     return a*(y-1/3*y**3)+A
-
-# def jac_vdp2g(x,y,eps,alpha):
-#     return np.array([[(1-x**2)/eps,1/eps],[-1,alpha*(1-y**2)]])
-
-jacobians = [mod.jac_vdp,mod.jac_vdp1g, mod.jac_vdp2g]
+jacobians = [mod.jac_vdp,mod.jac_vdp1g, mod.jac_vdp2g] # for linear stability analysis
 
 # potential VdP_2G system
 
@@ -146,20 +124,20 @@ para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A
 
 T0 = []
 
-for m in range(3):
+for m_idx in range(3):
     
     #transient phase
-    solution = solve_ivp(models[m], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
-                          args=([para[m]]), method='LSODA') 
+    solution = solve_ivp(models[m_idx], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
+                          args=([para[m_idx]]), method='LSODA') 
     
     #post transient
     IC = solution.y[:,solution.y.shape[1]-1]
-    solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
-                          t_eval=time, args=([para[m]]), method='LSODA') 
+    solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+                          t_eval=time, args=([para[m_idx]]), method='LSODA') 
         
     xGrad = np.gradient(solution.y[0,:])
     
-    if m==0:
+    if m_idx==0:
         peaks_out, _ = find_peaks(xGrad,height=0.15)
     else:
         peaks_out, _ = find_peaks(xGrad,height=0.33)
@@ -173,51 +151,51 @@ for m in range(3):
 #%% Supplementary Videos 1-4
 
 
-for k in range(4): #[3,5,6]:#range(3,5):
+for k in range(4):
 
     if k == 0:
-        m = 0
-        model_lbl = model_lbls[m]
-        A=0.125; omega=1*2*np.pi/T0[m] # 1:1
+        m_idx = 0
+        model_lbl = model_lbls[m_idx]
+        A=0.125; omega=1*2*np.pi/T0[m_idx] # 1:1 entrainment
         para = [eps,tau,A,omega]
-        yNCfunc = yNC_na
+        yNCfunc = mod.yNC_vdp_na
         nth = 2
-        t_end = 6*T0[m]
+        t_end = 6*T0[m_idx]
         dt = 0.05
         
     elif k == 1:
-        m = 1
-        model_lbl = model_lbls[m]
-        A=0.125; omega=2.6*2*np.pi/T0[m] # 1:1
+        m_idx = 1
+        model_lbl = model_lbls[m_idx]
+        A=0.125; omega=2.6*2*np.pi/T0[m_idx] # 1:1 entrainment
         para = [eps,a_bif[0]-eps_bif,A,omega]
-        yNCfunc = yNC_1g_na
+        yNCfunc = mod.yNC_1g_na
         nth = 2
-        t_end = 4*T0[m]
+        t_end = 4*T0[m_idx]
         dt = 0.02
     
     elif k == 2:
-        m = 1
-        model_lbl = model_lbls[m]
-        A=0.125; omega=0.5*2*np.pi/T0[m] # bursting
+        m_idx = 1
+        model_lbl = model_lbls[m_idx]
+        A=0.125; omega=0.5*2*np.pi/T0[m_idx] # bursting
         para = [eps,a_bif[0]-eps_bif,A,omega]
-        yNCfunc = yNC_1g_na
+        yNCfunc = mod.yNC_1g_na
         nth = 2
-        t_end = 4.5*T0[m]
+        t_end = 4.5*T0[m_idx]
         dt = 0.02
             
     elif k == 3:
-        m = 2
-        model_lbl = model_lbls[m]
-        A=0.125; omega=0.5*2*np.pi/T0[m] # 1:1
+        m_idx = 2
+        model_lbl = model_lbls[m_idx]
+        A=0.125; omega=0.5*2*np.pi/T0[m_idx] # 1:1 entrainment
         para = [eps,a_bif[1]-eps_bif,A,omega]
-        yNCfunc = yNC_2g_na
+        yNCfunc = mod.yNC_2g_na
         nth = 2
-        t_end = 6*T0[m]
+        t_end = 6*T0[m_idx]
         dt = 0.025
         
     
     def current_model(t,z):
-        return models[m](t,z,para)
+        return models[m_idx](t,z,para)
     
     
     
@@ -226,12 +204,12 @@ for k in range(4): #[3,5,6]:#range(3,5):
     # Simulation 
        
     #transient phase
-    solution = solve_ivp(models[m], (-t_tr,0), np.array([0.12,0.1]), rtol=1.e-6, atol=1.e-6,
+    solution = solve_ivp(models[m_idx], (-t_tr,0), np.array([0.12,0.1]), rtol=1.e-6, atol=1.e-6,
                           args=([para]), method='LSODA') 
     
     #post transient
     IC = solution.y[:,solution.y.shape[1]-1]
-    solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+    solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
                           t_eval=time, args=([para]), method='LSODA') 
         
     # plot trajectories, nullclines and create frames
@@ -273,9 +251,9 @@ for k in range(4): #[3,5,6]:#range(3,5):
         
         plt.subplot(1,2,1)
         
-        plt.plot(time, solution.y[0,:], color=colors[m],lw=0.75)
+        plt.plot(time, solution.y[0,:], color=colors[m_idx],lw=0.75)
         
-        plt.title(model_lbl+', A = '+"{:.3f}".format(A)+', $\omega = $'+"{:.2f}".format(omega/(2*np.pi)*T0[m])+'$\cdot \omega_0$')
+        plt.title(model_lbl+', A = '+"{:.3f}".format(A)+', $\omega = $'+"{:.2f}".format(omega/(2*np.pi)*T0[m_idx])+'$\cdot \omega_0$')
     
         plt.plot(time, A*np.sin(omega*time),'g',alpha=0.7,lw=0.75)
         plt.xlabel('time (a.u.)')
@@ -299,30 +277,31 @@ for k in range(4): #[3,5,6]:#range(3,5):
         ax.streamplot(Xg,Yg,U,V,density=1,color=[0.75,0.75,0.75,0.5],arrowsize=1,linewidth=0.75)
         
         #x-NC
-        ax.plot(x_range,xNC(x_range),'-k',lw=2,alpha=0.3)
+        ax.plot(x_range,mod.xNC(x_range),'-k',lw=2,alpha=0.3)
     
         #y-NC default
-        ax.plot(yNCfunc(y_range,para,time_red[i*movWin]),y_range,'--',color=colors[m],lw=2,alpha=0.66)
+        ax.plot(yNCfunc(y_range,para,time_red[i*movWin]),y_range,'--',color=colors[m_idx],lw=2,alpha=0.66)
         
         # trajectory
         for j in range(movWin):
             ridx = (i-1)*movWin+j
-            ax.plot(simDat_red[0,ridx:ridx+2], simDat_red[1,ridx:ridx+2],'-', color=colors[m],lw=1.5,alpha=fadingFactor[j])
+            ax.plot(simDat_red[0,ridx:ridx+2], simDat_red[1,ridx:ridx+2],'-', color=colors[m_idx],lw=1.5,alpha=fadingFactor[j])
             
             if j == movWin-1:
                             
                 #intersection points
-                xNC_arr = np.column_stack((x_range,xNC(x_range)))
-                # yNC_arr = np.column_stack((yNC_2g(y_range,para),y_range))
+                xNC_arr = np.column_stack((x_range,mod.xNC(x_range)))
                 yNC_arr = np.column_stack((yNCfunc(y_range,para,time_red[i*movWin]),y_range))
                 
                 
                 intersecPts = fun.intersections(xNC_arr,yNC_arr)
                 
+                
+                # Linear stability analysis
                 for ii in range(intersecPts.shape[1]):
                     x,y=intersecPts[:,ii]
                     
-                    eigenvalues, eigenvectors = np.linalg.eig(jacobians[m](x,y,para[0],para[1]))
+                    eigenvalues, eigenvectors = np.linalg.eig(jacobians[m_idx](x,y,para[0],para[1]))
          
                     if any(eigenvalues<0):
                         if any(eigenvalues>0): #saddle
@@ -332,7 +311,7 @@ for k in range(4): #[3,5,6]:#range(3,5):
                     else: #stable FP
                         ax.plot(x,y,'o', color='white', mec='k',ms=7)
                         
-                ax.plot(simDat_red[0,ridx], simDat_red[1,ridx],'o',ms=5, color=colors[m])
+                ax.plot(simDat_red[0,ridx], simDat_red[1,ridx],'o',ms=5, color=colors[m_idx])
                 
                 ax.set_xlabel('x')
                 ax.set_ylabel('y')
@@ -372,24 +351,23 @@ for k in range(4): #[3,5,6]:#range(3,5):
     
 #%% Supplementary Videos 5-7
 
-m = 2
+m_idx = 2
 
 for k in range(3):
     
     A, fold_unforced = [(0.125,1),(0.125,4.75),(0.125,5.25)][k]
 
-    model_lbl = model_lbls[m]
+    model_lbl = model_lbls[m_idx]
     
-    omega=fold_unforced*2*np.pi/T0[m]
+    omega=fold_unforced*2*np.pi/T0[m_idx]
     para = [eps,a_bif[1]-eps_bif,A,omega]
-    # para = [eps,0,A,omega]
-    yNCfunc = yNC_2g_na
+    yNCfunc = mod.yNC_2g_na
     nth =  1
-    t_end = 4*T0[m]
+    t_end = 4*T0[m_idx]
     dt = 0.025
     
     def current_model(t,z):
-        return models[m](t,z,para)
+        return models[m_idx](t,z,para)
     
         
     
@@ -398,12 +376,12 @@ for k in range(3):
     # Simulation 
     
     #transient phase
-    solution = solve_ivp(models[m], (-t_tr,0), np.array([0.12,0.1]), rtol=1.e-6, atol=1.e-6,
+    solution = solve_ivp(models[m_idx], (-t_tr,0), np.array([0.12,0.1]), rtol=1.e-6, atol=1.e-6,
                           args=([para]), method='LSODA') 
     
     #post transient
     IC = solution.y[:,solution.y.shape[1]-1]
-    solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+    solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
                           t_eval=time, args=([para]), method='LSODA') 
         
     # plot trajectories, nullclines and create frames
@@ -441,10 +419,10 @@ for k in range(3):
         
         newFig=plt.figure(figsize=(14*inCm,7.2*inCm))
              
-        if m == 2: 
+        if m_idx == 2: 
             plt.subplot(1,2,1)
         
-        plt.suptitle(model_lbl+', A = '+"{:.3f}".format(A)+', $\omega = $'+"{:.2f}".format(omega/(2*np.pi)*T0[m])+'$\cdot \omega_0$')
+        plt.suptitle(model_lbl+', A = '+"{:.3f}".format(A)+', $\omega = $'+"{:.2f}".format(omega/(2*np.pi)*T0[m_idx])+'$\cdot \omega_0$')
         
         ax = plt.gca()
         ax.set_box_aspect(1/1)
@@ -453,30 +431,31 @@ for k in range(3):
         ax.streamplot(Xg,Yg,U,V,density=1.7,color=[0.75,0.75,0.75,1],arrowsize=1,linewidth=0.85)
         
         #x-NC
-        ax.plot(x_range,xNC(x_range),'-k',lw=2,alpha=0.3)
+        ax.plot(x_range,mod.xNC(x_range),'-k',lw=2,alpha=0.3)
     
         #y-NC default
-        ax.plot(yNCfunc(y_range,para,time_red[i*movWin]),y_range,'--',color=colors[m],lw=2,alpha=0.66)
+        ax.plot(yNCfunc(y_range,para,time_red[i*movWin]),y_range,'--',color=colors[m_idx],lw=2,alpha=0.66)
         
         
     
         # trajectory
         for j in range(movWin):
             ridx = (i-1)*movWin+j
-            ax.plot(simDat_red[0,ridx:ridx+2], simDat_red[1,ridx:ridx+2],'-', color=colors[m],lw=1.5,alpha=fadingFactor[j])
+            ax.plot(simDat_red[0,ridx:ridx+2], simDat_red[1,ridx:ridx+2],'-', color=colors[m_idx],lw=1.5,alpha=fadingFactor[j])
             
             if j == movWin-1:
                             
                 #intersection points
-                xNC_arr = np.column_stack((x_range,xNC(x_range)))
+                xNC_arr = np.column_stack((x_range,mod.xNC(x_range)))
                 yNC_arr = np.column_stack((yNCfunc(y_range,para,time_red[i*movWin]),y_range))
                 
                 intersecPts = fun.intersections(xNC_arr,yNC_arr)
                 
+                # Linear stability analysis and eigenvectors
                 for ii in range(intersecPts.shape[1]):
                     x,y=intersecPts[:,ii]
     
-                    eigenvalues, eigenvectors = np.linalg.eig(jacobians[m](x,y,para[0],para[1]))
+                    eigenvalues, eigenvectors = np.linalg.eig(jacobians[m_idx](x,y,para[0],para[1]))
                     
                     if any(eigenvalues<0):
                         if any(eigenvalues>0): #saddle
@@ -484,7 +463,6 @@ for k in range(3):
                                 if eigenvalues[e]< 0:
                                     col = 'black'
                                 
-                                    # ax.arrow(0, 0, 1, 1, head_width=0.05, head_length=0.1, fc='blue', ec='blue')
                                     x_ = np.linspace(x,x+eigenvectors[0,e],7)
                                     y_ = np.linspace(y,y+eigenvectors[1,e],7)
                                     
@@ -513,12 +491,12 @@ for k in range(3):
                     else: #stable FP
                         ax.plot(x,y,'o', color='white', mec='k',ms=10)
                         
-                ax.plot(simDat_red[0,ridx], simDat_red[1,ridx],'o',ms=5, color=colors[m])             
+                ax.plot(simDat_red[0,ridx], simDat_red[1,ridx],'o',ms=5, color=colors[m_idx])             
                 
                 #inset
                 axin1 = ax.inset_axes([0.775, 0.025, 0.2, 0.2])
-                axin1.plot(solution.y[0,:], solution.y[1,:],'-',lw=0.25, color=colors[m])
-                axin1.plot(simDat_red[0,ridx], simDat_red[1,ridx],'o',ms=2, color=colors[m])
+                axin1.plot(solution.y[0,:], solution.y[1,:],'-',lw=0.25, color=colors[m_idx])
+                axin1.plot(simDat_red[0,ridx], simDat_red[1,ridx],'o',ms=2, color=colors[m_idx])
                 axin1.set_yticks([])
                 axin1.set_xticks([])
     
@@ -530,7 +508,7 @@ for k in range(3):
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),fontsize=6, frameon=False)
         
         t = time_red[i*movWin]
-        if m == 2: 
+        if m_idx == 2: 
             plt.subplot(1,2,2)
             ridx = i*movWin-1
            
@@ -546,7 +524,7 @@ for k in range(3):
             
             
             if simDat_red[0,ridx] > 1.5 and simDat_red[1,ridx] > 0:
-                plt.plot(simDat_red[1,ridx], Vy(simDat_red[1,ridx], t, para),'o', color=colors[m])
+                plt.plot(simDat_red[1,ridx], Vy(simDat_red[1,ridx], t, para),'o', color=colors[m_idx])
             
             plt.ylim(0,1.25)
             plt.xlabel('y')
@@ -586,27 +564,27 @@ n = 0
 for k in range(2):
 
     if k == 0:
-        m = 0
-        model_lbl = model_lbls[m]
-        A=1.5; omega=0.29*2*np.pi/T0[m] # 1:1
+        m_idx = 0
+        model_lbl = model_lbls[m_idx]
+        A=1.5; omega=0.29*2*np.pi/T0[m_idx] # 1:1
         para = [eps,tau,A,omega]
-        yNCfunc = yNC_na
+        yNCfunc = mod.yNC_vdp_na
         nth = 3
-        t_end = 8*T0[m]
+        t_end = 8*T0[m_idx]
         dt = 0.05
     elif k == 1:
-        m = 0
-        model_lbl = model_lbls[m]
-        A=1.5; omega=2*2.5*np.pi/T0[m] # 1:1
+        m_idx = 0
+        model_lbl = model_lbls[m_idx]
+        A=1.5; omega=2*2.5*np.pi/T0[m_idx] # 1:1
         para = [eps,tau,A,omega]
-        yNCfunc = yNC_na
+        yNCfunc = mod.yNC_vdp_na
         nth = 1
-        t_end = 3.5*T0[m]
+        t_end = 3.5*T0[m_idx]
         dt = 0.05
     
     
     def current_model(t,z):
-        return models[m](t,z,para)
+        return models[m_idx](t,z,para)
     
     
     
@@ -615,12 +593,12 @@ for k in range(2):
     # Simulation 
     
     #transient phase
-    solution = solve_ivp(models[m], (-t_tr,0), np.array([0,np.sqrt(3)]), rtol=1.e-6, atol=1.e-6,
+    solution = solve_ivp(models[m_idx], (-t_tr,0), np.array([0,np.sqrt(3)]), rtol=1.e-6, atol=1.e-6,
                           args=([para]), method='LSODA') 
     
     #post transient
     IC = solution.y[:,solution.y.shape[1]-1]
-    solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+    solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
                           t_eval=time, args=([para]), method='LSODA') 
         
     # plot trajectories, nullclines and create frames
@@ -662,9 +640,9 @@ for k in range(2):
         
         plt.subplot(1,2,1)
         
-        plt.plot(time, solution.y[0,:], color=colors[m],lw=0.75)
+        plt.plot(time, solution.y[0,:], color=colors[m_idx],lw=0.75)
         
-        plt.title(model_lbl+', A = '+"{:.3f}".format(A)+', $\omega = $'+"{:.2f}".format(omega/(2*np.pi)*T0[m])+'$\cdot \omega_0$')
+        plt.title(model_lbl+', A = '+"{:.3f}".format(A)+', $\omega = $'+"{:.2f}".format(omega/(2*np.pi)*T0[m_idx])+'$\cdot \omega_0$')
     
         plt.plot(time, A*np.sin(omega*time),'g',alpha=0.7,lw=0.75)
         plt.xlabel('time (a.u.)')
@@ -687,29 +665,30 @@ for k in range(2):
         ax.streamplot(Xg,Yg,U,V,density=1,color=[0.75,0.75,0.75,0.5],arrowsize=1,linewidth=0.75)
         
         #x-NC
-        ax.plot(x_range,xNC(x_range),'-k',lw=2,alpha=0.3)
+        ax.plot(x_range,mod.xNC(x_range),'-k',lw=2,alpha=0.3)
     
         #y-NC default
-        ax.plot(yNCfunc(y_range,para,time_red[i*movWin]),y_range,'--',color=colors[m],lw=2,alpha=0.66)      
+        ax.plot(yNCfunc(y_range,para,time_red[i*movWin]),y_range,'--',color=colors[m_idx],lw=2,alpha=0.66)      
         
         # trajectory
         for j in range(movWin):
             ridx = (i-1)*movWin+j
-            ax.plot(simDat_red[0,ridx:ridx+2], simDat_red[1,ridx:ridx+2],'-', color=colors[m],lw=1.5,alpha=fadingFactor[j])
+            ax.plot(simDat_red[0,ridx:ridx+2], simDat_red[1,ridx:ridx+2],'-', color=colors[m_idx],lw=1.5,alpha=fadingFactor[j])
             
             if j == movWin-1:
                             
                 #intersection points
-                xNC_arr = np.column_stack((x_range,xNC(x_range)))
+                xNC_arr = np.column_stack((x_range,mod.xNC(x_range)))
                 yNC_arr = np.column_stack((yNCfunc(y_range,para,time_red[i*movWin]),y_range))
                 
                 
                 intersecPts = fun.intersections(xNC_arr,yNC_arr)
                 
+                # Linear stability analysis
                 for ii in range(intersecPts.shape[1]):
                     x,y=intersecPts[:,ii]
                     
-                    eigenvalues, eigenvectors = np.linalg.eig(jacobians[m](x,y,para[0],para[1]))
+                    eigenvalues, eigenvectors = np.linalg.eig(jacobians[m_idx](x,y,para[0],para[1]))
                     
                     if any(eigenvalues<0):
                         if any(eigenvalues>0): #saddle
@@ -719,7 +698,7 @@ for k in range(2):
                     else: #stable FP
                         ax.plot(x,y,'o', color='white', mec='k',ms=7)
                         
-                ax.plot(simDat_red[0,ridx], simDat_red[1,ridx],'o',ms=5, color=colors[m])
+                ax.plot(simDat_red[0,ridx], simDat_red[1,ridx],'o',ms=5, color=colors[m_idx])
                 
                 ax.set_xlabel('x')
                 ax.set_ylabel('y')

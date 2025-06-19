@@ -1,0 +1,27 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# Modified Van der Pol model with two simultaneous SNIC-bifurcations.
+# Used to produce bifurcation diagram shown in Figure 1b of the paper:
+#
+# Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+# Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+# Physical Review E, XX: XXXX-XXXX.
+# 
+# Copyright: Daniel Koch
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+par a = 20, eps = 0.01, b=1
+
+x'=1/eps*(x-1/3*x^3+y)
+y'= -b*x + a*(y-1/3*y^3)
+x(0)=1
+y(0)=1
+@ nplot=1
+@ total=40,xp=x,yp=y,xlo=-2.25,xhi=2.25,ylo=-1.5,yhi=1.5
+@ meth=cvode, dt=.01, atol=1e-5, rtol=1e-5
+
+# Some AUTO parameters
+@ autovar=x,autoxmin=0,autoymin=-5,autoxmax=20,autoymax=5
+@ ntst=400,nmax=2500,npr=500,ds=-0.001,dsmin=0.0001,dsmax=0.01
+@ ncol=4,epsl=1e-4,parmin=0,parmax=20,normmin=0,normmax=1000
+@ epsu=1e-4,epss=0.0001
+done

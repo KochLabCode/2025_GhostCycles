@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov 21 17:40:45 2023
+This code reproduces Figure 5 from the paper:
 
-@author: Daniel Koch
+    Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+    Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+    Physical Review E, XX: XXXX-XXXX.
+    
+Copyright: Daniel Koch
 """
 
 # Import packages and modules
@@ -13,6 +17,7 @@ import matplotlib.pylab as pylab
 import matplotlib.colors as mpcol
 from scipy.integrate import solve_ivp
 from scipy.signal import find_peaks
+from tqdm import tqdm
 
 import os
 import sys
@@ -43,14 +48,18 @@ y_range=np.linspace(ymin,ymax,Ng)
 grid_ss = np.meshgrid(x_range, y_range)
 Xg,Yg=grid_ss
 
+# models and parameters
+jacobians = [mod.jac_vdp, mod.jac_vdp1g, mod.jac_vdp2g]
+
+# non-autonomous models
+models = [mod.vanDerPol_na, mod.vanDerPol_1g_na, mod.vanDerPol_2g_na]
+models_aut_trans = [mod.vanDerPol_na_aut, mod.vanDerPol_1g_na_aut, mod.vanDerPol_2g_na_aut]
+jacobians_na = [mod.vdp_na_aut_jac, mod.vdp1g_na_aut_jac, mod.vdp2g_na_aut_jac]
+
 eps = 0.02; tau = 16.5
 a_bif = [7.131, 3.145]; eps_bif = 0.01
 ampVect = [1.5,0,-1.5]
 
-models = [mod.vanDerPol_na, mod.vanDerPol_1g_na, mod.vanDerPol_2g_na]
-models_aut_trans = [mod.vanDerPol_na_aut, mod.vanDerPol_1g_na_aut, mod.vanDerPol_2g_na_aut]
-jacobians = [mod.jac_vdp, mod.jac_vdp1g, mod.jac_vdp2g]
-jacobians_na = [mod.vdp_na_aut_jac, mod.vdp1g_na_aut_jac, mod.vdp2g_na_aut_jac]
 
 #%% Determine periods in absence of forcing - T0
 
@@ -62,20 +71,20 @@ para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A
 
 T0 = []
 
-for m in range(3):
+for m_idx in range(3):
     
     #transient phase
-    solution = solve_ivp(models[m], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
-                          args=([para[m]]), method='LSODA') 
+    solution = solve_ivp(models[m_idx], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
+                          args=([para[m_idx]]), method='LSODA') 
     
     #post transient
     IC = solution.y[:,solution.y.shape[1]-1]
-    solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
-                          t_eval=time, args=([para[m]]), method='LSODA') 
+    solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+                          t_eval=time, args=([para[m_idx]]), method='LSODA') 
         
     xGrad = np.gradient(solution.y[0,:])
     
-    if m==0:
+    if m_idx==0:
         peaks_out, _ = find_peaks(xGrad,height=0.15)
     else:
         peaks_out, _ = find_peaks(xGrad,height=0.33)
@@ -86,13 +95,13 @@ for m in range(3):
    
     T0.append(np.round(np.mean(T_out),0))
 
-#%%  Figure 5a 
+#%%  Figure 5a  - phase space plots
 
 # Van der Pol
 def flow_model(t,z):
     return mod.vanDerPol_constForce(t,z,para)
 
-m = 0
+m_idx = 0
 
 # parameters
 for i in range(3):
@@ -122,7 +131,7 @@ for i in range(3):
     for ii in range(intersecPts.shape[1]):
         x,y=intersecPts[:,ii]
         
-        eigenvalues, eigenvectors = np.linalg.eig(jacobians[m](x,y,para[0],para[1]))
+        eigenvalues, eigenvectors = np.linalg.eig(jacobians[m_idx](x,y,para[0],para[1]))
 
         if any(eigenvalues<0):
             if any(eigenvalues>0): #saddle
@@ -186,7 +195,7 @@ plt.xlabel('A')
 plt.savefig('Fig5b.svg')
 
     
-#%% Figure 2a - Arnold tongues
+#%% Figure 5c - Arnold tongues
 
 # Determine T_in and T_out as a function forcing amplitude and frequency
 
@@ -198,16 +207,16 @@ fold_unforced = np.logspace(-1,1,200)
 
 
 if loadData == False:
-    for m in [0,1,2]:
+    for m_idx in [0,1,2]:
     
-        t_end = 60*T0[m]; npts = int(t_end/dt); time = np.linspace(0,t_end,npts+1)  
+        t_end = 60*T0[m_idx]; npts = int(t_end/dt); time = np.linspace(0,t_end,npts+1)  
         
-        omega_range = fold_unforced*2*np.pi/T0[m]
+        omega_range = fold_unforced*2*np.pi/T0[m_idx]
         
         T_inp = np.zeros((A_range.shape[0],omega_range.shape[0]))
         T_out = np.zeros((A_range.shape[0],omega_range.shape[0]))
         
-        for i in range(A_range.shape[0]):
+        for i in tqdm(range(A_range.shape[0]),desc=f"Simulations Arnold tongues (Figure 5c), model {m_idx}"):
             print(i)
             for j in range(omega_range.shape[0]):
                 
@@ -216,15 +225,15 @@ if loadData == False:
                 para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A,omega]]
                 
                 #transient phase
-                solution = solve_ivp(models[m], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
-                                      args=([para[m]]), method='LSODA') 
+                solution = solve_ivp(models[m_idx], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
+                                      args=([para[m_idx]]), method='LSODA') 
                 
                 #post transient
                 IC = solution.y[:,solution.y.shape[1]-1]
-                solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
-                                      t_eval=time, args=([para[m]]), method='LSODA')           
+                solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+                                      t_eval=time, args=([para[m_idx]]), method='LSODA')           
                 xGrad = np.gradient(solution.y[0,:])
-                if m==0:
+                if m_idx==0:
                     peaks_out, _ = find_peaks(xGrad,height=0.15)
                 else:
                     peaks_out, _ = find_peaks(xGrad,height=0.33)
@@ -235,19 +244,19 @@ if loadData == False:
                 T_inp[i,j] = 2*np.pi/omega 
                 T_out[i,j] = np.mean(t_out)
         
-        np.save('T_inp_'+str(m)+'.npy', T_inp)
-        np.save('T_out_'+str(m)+'.npy', T_out)
+        np.save('T_inp_'+str(m_idx)+'.npy', T_inp)
+        np.save('T_out_'+str(m_idx)+'.npy', T_out)
 
 # calculate and plot Arnold tongues
 
 sections = [[0.9,1.05],[1.3,4.6],[0.1,5.6]] # red lines indicating phase difference plots 
 aTs = []
 
-for m in [0,1,2]:#]range(3):
-    T_out = np.load('T_out_'+str(m)+'.npy')
-    T_inp = np.load('T_inp_'+str(m)+'.npy')
+for m_idx in [0,1,2]:#]range(3):
+    T_out = np.load('T_out_'+str(m_idx)+'.npy')
+    T_inp = np.load('T_inp_'+str(m_idx)+'.npy')
     
-    omega_range = fold_unforced*2*np.pi/T0[m]
+    omega_range = fold_unforced*2*np.pi/T0[m_idx]
     
     fig = plt.figure(figsize=(8.6*2/3*inCm,4*inCm))
     
@@ -306,7 +315,7 @@ for m in [0,1,2]:#]range(3):
             lbls.append(ratio_lbls[i])
             area += area_percent
     
-    if m == 0: plt.hlines(20,0,199,color='skyblue',linestyles='dashed',lw=1)
+    if m_idx == 0: plt.hlines(20,0,199,color='skyblue',linestyles='dashed',lw=1)
         
     # largest Lyapunov exponents
 
@@ -319,7 +328,7 @@ for m in [0,1,2]:#]range(3):
         A_range_r  = A_range[::nth]
         
         fold_unforced_r = fold_unforced[::nth]
-        omega_range_r = fold_unforced_r*2*np.pi/T0[m]
+        omega_range_r = fold_unforced_r*2*np.pi/T0[m_idx]
         
         aT_reduced = np.copy(aT[::nth,::nth])
         
@@ -332,17 +341,17 @@ for m in [0,1,2]:#]range(3):
             omega = omega_range_r[idcs_LLE[1,i]]
             para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A,omega]]
             
-            LLE = fun.maxLyap('LSODA', models_aut_trans[m], para[m], np.array([0.1,0.1,0]), jacobians_na[m], max(20*T0[m], 200), dt, max(2*T0[m], 50), plotFit=False)
+            LLE = fun.maxLyap('LSODA', models_aut_trans[m_idx], para[m_idx], np.array([0.1,0.1,0]), jacobians_na[m_idx], max(20*T0[m_idx], 200), dt, max(2*T0[m_idx], 50), plotFit=False)
             x = np.where(fold_unforced == fold_unforced_r[idcs_LLE[1,i]])[0][0]
             y = np.where(A_range == A_range_r[idcs_LLE[0,i]])[0][0]
             LLEs.append([LLE,x,y])
         
         LLEs_AT = np.asarray(LLEs)
         
-        np.save('LLEs_AT_mod'+str(m)+'.npy',LLEs_AT)
+        np.save('LLEs_AT_mod'+str(m_idx)+'.npy',LLEs_AT)
       
     try:
-        LLEs_AT = np.load('LLEs_AT_mod'+str(m)+'.npy')
+        LLEs_AT = np.load('LLEs_AT_mod'+str(m_idx)+'.npy')
         for i in range(LLEs_AT.shape[0]):
             x,y = LLEs_AT[i,1:]
             
@@ -350,7 +359,7 @@ for m in [0,1,2]:#]range(3):
                 plt.plot(x,39-y,'xc', markeredgecolor='c',ms=1.25) #x shifted by -2 for plotting purposes only
         
     except:
-        print('LLEs_AT_mod'+str(m)+'.npy not found!')
+        print('LLEs_AT_mod'+str(m_idx)+'.npy not found!')
             
     plt.title('   '.join(l for l in lbls[1:]),fontsize=8)
     
@@ -363,7 +372,7 @@ for m in [0,1,2]:#]range(3):
     plt.subplots_adjust(top=1.0,
     bottom=0.155, left=0.195, right=1.0, hspace=0.145, wspace=0.18)
     
-    plt.savefig('Fig5c_'+str(m)+'.svg')
+    plt.savefig('Fig5c_'+str(m_idx)+'.svg')
     
     # plot individual tongues
     # plt.figure()

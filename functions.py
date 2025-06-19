@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Apr  6 14:23:51 2024
+This code features various functions used in other codes for the paper:
 
-@author: Daniel Koch
+    Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+    Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+    Physical Review E, XX: XXXX-XXXX.
+    
+Copyright: Daniel Koch
 """
 
 import numpy as np
 import shapely
 import matplotlib.pyplot as plt
-import random as rnd
 from scipy.integrate import solve_ivp
 
 def get_rcparams():
@@ -22,9 +25,15 @@ def get_rcparams():
               }
     return params
 
-def RK4_na_noisy(f,p,ICs,t0,dt,t_end, noiseVector, sigma=0, naFun = None,naFunParams = None):     # args: ODE system, parameters, initial conditions, starting time t0, dt, number of steps
+def RK4_na_noisy(f,p,ICs,t0,dt,t_end, noiseVector, sigma=0, naFun = None,naFunParams = None,**kwargs):     # args: ODE system, parameters, initial conditions, starting time t0, dt, number of steps
         
-        # using Euler-Maruyama method (https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method)
+        # using Euler-Maruyama method (https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method
+        
+        if 'multiplicative_noise' in kwargs:
+            multNoise = kwargs['multiplicative_noise']
+            # print(multNoise)
+        else:
+            multNoise = False
 
         steps = int((t_end-t0)/dt)
         dims = tuple([steps]+list(ICs.shape))
@@ -44,8 +53,13 @@ def RK4_na_noisy(f,p,ICs,t0,dt,t_end, noiseVector, sigma=0, naFun = None,naFunPa
                 k3 = f(x[i-1]+k2/2,t[i-1],p,naFun,naFunParams)*dt
                 k4 = f(x[i-1]+k3,t[i-1],p,naFun,naFunParams)*dt
                 x_next = x[i-1] + (k1+2*k2+2*k3+k4)/6
-                dW=sigma*np.sqrt(dt)*np.random.normal(size=x_next.shape)
-                x[i,:] = x_next + dW*noiseVector 
+                if multNoise == False:
+                    dW=sigma*np.sqrt(dt)*np.random.normal(size=x_next.shape)
+                    x[i,:] = x_next + dW*noiseVector 
+                else:
+                    dW=sigma*np.sqrt(dt*x[i-1])*np.random.normal(size=x_next.shape)
+                    x[i,:] = x_next + dW*noiseVector 
+                    
         else:
             for i in range(1,steps):
                 t[i] = t0 + i*dt
@@ -55,8 +69,12 @@ def RK4_na_noisy(f,p,ICs,t0,dt,t_end, noiseVector, sigma=0, naFun = None,naFunPa
                 k3 = f(x[i-1]+k2/2,t[i-1],p)*dt
                 k4 = f(x[i-1]+k3,t[i-1],p)*dt
                 x_next = x[i-1] + (k1+2*k2+2*k3+k4)/6
-                dW=sigma*np.sqrt(dt)*np.random.normal(size=x_next.shape)
-                x[i,:] = x_next + dW*noiseVector  #np.array([0,1])
+                if multNoise == False:
+                    dW=sigma*np.sqrt(dt)*np.random.normal(size=x_next.shape)
+                    x[i,:] = x_next + dW*noiseVector
+                else:
+                    dW=sigma*np.sqrt(dt*x[i-1])*np.random.normal(size=x_next.shape)
+                    x[i,:] = x_next + dW*noiseVector 
             
         return t,x.T    
     
@@ -129,50 +147,6 @@ def vector_field_na(t,current_model,grid_ss,dim):
                 U[i,j],V[i,j]=current_model(t,[Xg[i,j],Yg[i,j]])
         return U,V
     
-# def maxLyapunov(integrator, sys, ICs, params, t_end, dt = 0.01, tau = 50, t_transient = 100, d0 = 1e-10,  d_thr_max = 1e-6, d_thr_min = 1e-12):
-#     # https://journals.aps.org/pra/pdf/10.1103/PhysRevA.14.2338
-        
-#     X1 = np.array([])
-#     dim = ICs.shape[0]
-#     w = d0/np.sqrt(dim)
-    
-#     if t_transient > 0:
-#         transient = integrator(sys,params,ICs,0,dt,t_transient)[1]
-#         IC = transient[:,transient.shape[1]-1]
-#     else:
-#         IC = ICs
-        
-#     k = 1 
-    
-#     record  = []
-
-#     while k*tau < t_end:
-#         simx = integrator(sys,params,IC,0,dt,tau)[1]
-#         simw = integrator(sys,params,IC+np.ones(dim)*w,0,dt,tau)[1]
-        
-#         tlast = simx.shape[1]-1
-#         IC = simx[:,tlast]
-        
-#         delta_t = np.linalg.norm(simx[:,tlast] - simw[:,tlast])
-        
-        
-#         record.append(str(['k:',k, delta_t, simx[:,tlast] - simw[:,tlast]] ))
-        
-#         if not(delta_t > d_thr_min or delta_t < d_thr_max):
-#             print('tau zu klein, delta = ', delta_t )
-#             return
-        
-#         X1 = np.append(X1, np.log(delta_t/d0))
-        
-#         w = d0*(simw[:,tlast] - simx[:,tlast])/delta_t
-        
-#         k += 1
-
-#     maxLyap = np.sum(X1)/t_end
-    
-#     return maxLyap, record
-
-
 def maxLyap(method, sys, params, ICs, jac, t_end, dt = 0.01, t_transient = 100, eps = 1e-8, **kwargs):
     
     if 'plotFit' in kwargs:
@@ -190,8 +164,7 @@ def maxLyap(method, sys, params, ICs, jac, t_end, dt = 0.01, t_transient = 100, 
         npts = int(t_transient/dt); time = np.linspace(0,t_transient,npts+1)  
         sol_transient = solve_ivp(sys, (0,t_transient), ICs, rtol=1.e-6, atol=1.e-6,
                               t_eval=time, args=([params]), method=method) 
-        # sol_transient = integrator(sys,params,ICs,0, dt, t_transient)[1]
-        # return sol_transient
+
         ICs_ = sol_transient.y[:,sol_transient.y.shape[1]-1]
     else:
         ICs_ = ICs
@@ -203,7 +176,6 @@ def maxLyap(method, sys, params, ICs, jac, t_end, dt = 0.01, t_transient = 100, 
     
      
     ICs_cpld = np.hstack((ICs_,ICs_+ np.random.normal(-1,1,size=dim)*eps))
-    # sol_time, sol_tanSpace = integrator(coupled_sys,params,ICs_cpld,0,dt, t_end)
     
     npts = int(t_end/dt); time = np.linspace(0,t_end,npts+1) 
     sol_tanSpace = solve_ivp(coupled_sys, (0,t_end), ICs_cpld, rtol=1.e-6, atol=1.e-6,
@@ -237,7 +209,7 @@ def euklDist(x,y): #calculates the euclidean distance between vectors x and y
             EDsum = EDsum + np.square(x[i]-y[i])
         return np.sqrt(EDsum)
     else:
-        print("Unsuitable arguments for euklidean distance calculation.")
+        print("Unsuitable arguments for Euklidean distance calculation.")
 
 def euklideanVelocity(x,dt):
     v = np.array([])
@@ -248,7 +220,9 @@ def euklideanVelocity(x,dt):
     return v
 
 def intersections(a,b):
-
+    
+    # determines intersections between two lines a and b
+    
     a_ = shapely.LineString(a)
     b_ = shapely.LineString(b)
     intsecs = shapely.intersection(a_,b_).wkt

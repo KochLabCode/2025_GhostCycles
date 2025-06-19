@@ -1,0 +1,30 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# Van der Pol model with constant forcing of amplitude A.
+# Used to produce bifurcation diagram shown in Figure 5b of the paper:
+#
+# Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+# Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+# Physical Review E, XX: XXXX-XXXX.
+# 
+# Copyright: Daniel Koch
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+
+par A=-2, eps = 0.02, tau=16.5
+
+x'=1/eps*(x-1/3*x^3+y)/tau
+y'= -x/tau+A/tau
+
+x(0)=1
+y(0)=1
+@ nplot=1
+@ total=300,xp=x,yp=y,xlo=-5,xhi=5,ylo=-5,yhi=5
+@ meth=cvode, dt=.01, atol=1e-5, rtol=1e-5
+
+# Some AUTO parameters
+@ autovar=x,autoxmin=-2,autoymin=-5,autoxmax=2,autoymax=5
+@ ntst=400,nmax=2500,npr=500,ds=0.001,dsmin=0.0001,dsmax=0.05
+@ ncol=4,epsl=1e-4,parmin=-2,parmax=2,normmin=0,normmax=1000
+@ epsu=1e-4,epss=0.0001
+done
+

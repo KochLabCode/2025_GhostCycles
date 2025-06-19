@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov 21 17:40:45 2023
+This code reproduces Figure 1 from the paper:
 
-@author: Daniel Koch
+    Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+    Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+    Physical Review E, XX: XXXX-XXXX.
+    
+Copyright: Daniel Koch
 """
 
 # Import packages and modules
@@ -64,7 +68,7 @@ ax.streamplot(Xg,Yg,U,V,density=0.8,color=[0.75,0.75,0.75,1],arrowsize=1,linewid
 ax.plot(x_range,mod.xNC(x_range),'-k',lw=4)
 
 #y-NC default
-ax.plot(mod.yNC(y_range,para),y_range,'--',color=colors[0],lw=2)
+ax.plot(mod.yNC_vdp(y_range,0),y_range,'--',color=colors[0],lw=2)
 
 # Trajectories
 
@@ -101,11 +105,11 @@ ax.streamplot(Xg,Yg,U,V,density=0.8,color=[0.75,0.75,0.75,1],arrowsize=1,linewid
 ax.plot(x_range,mod.xNC(x_range),'-k',lw=4)
 
 #y-NC at SNIC - 2 ghosts
-a = 3; para = a # set further from bifurcation for plotting 
+a = 3; para = [eps,a,0,0 ]# a set further from bifurcation for plotting 
 ax.plot(mod.yNC_2g(y_range,para),y_range,'--',color=colors[2],lw=2.5)
 
 #y-NC at SNIC - 1 ghost
-a = 7; para = [a] # a set further from bifurcation for plotting 
+a = 7; para = [eps,a,0,0 ]# a set further from bifurcation for plotting 
 ax.plot(mod.yNC_1g(y_range,para),y_range,'--',color=colors[1],lw=2.5)
 
 # # Trajectories
@@ -359,9 +363,9 @@ time = np.linspace(0,t_end,npts+1)
 
 # run simulations
 velocities = []
-for m in range(3):
-    solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
-                          t_eval=time, args=([para[m]]), method='LSODA') 
+for m_idx in range(3):
+    solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+                          t_eval=time, args=([para[m_idx]]), method='LSODA') 
     velocities.append(fun.euklideanVelocity(solution.y[:,idx_tr:].T, 1)/dt)
 
 # plot

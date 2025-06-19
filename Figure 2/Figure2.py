@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Apr  7 19:34:53 2024
+This code reproduces Figure 2 from the paper:
 
-@author: Daniel Koch
+    Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+    Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+    Physical Review E, XX: XXXX-XXXX.
+    
+Copyright: Daniel Koch
 """
+
+# Import packages and modules
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pylab
@@ -11,6 +18,7 @@ import matplotlib.colors as mpcol
 import matplotlib.ticker as ticker
 from scipy.signal import find_peaks, argrelextrema
 from scipy.integrate import solve_ivp
+from tqdm import tqdm
 
 import os
 import sys
@@ -31,12 +39,17 @@ colors = ['#0000FF','m','#FF5555']
 
 # models and parameters
 
-models = [mod.vanDerPol_na, mod.vanDerPol_1g_na, mod.vanDerPol_2g_na]
+# non-autonomous models
+models = [mod.vanDerPol_na, mod.vanDerPol_1g_na, mod.vanDerPol_2g_na]             
+             
+# non-autonomous models transformed into autonomous versions with additional variable for forcing
 models_aut_trans = [mod.vanDerPol_na_aut, mod.vanDerPol_1g_na_aut, mod.vanDerPol_2g_na_aut]
 jacobians = [mod.vdp_na_aut_jac, mod.vdp1g_na_aut_jac, mod.vdp2g_na_aut_jac]
     
-a_bif = [7.131, 3.145]; eps_bif = 0.01
-eps = 0.02; tau = 16.5 # 10 for matching VdP1G, 16.5 for matching VdP2G
+a_bif = [7.131, 3.145] # positions of SNIC bifurcations
+eps_bif = 0.01
+eps = 0.02
+tau = 16.5 # 10 for matching VdP1G, 16.5 for matching VdP2G
 
 intMethod = 'LSODA'
 
@@ -50,20 +63,20 @@ para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A
 
 T0 = []
 
-for m in range(3):
+for m_idx in range(3):
     
     #transient phase
-    solution = solve_ivp(models[m], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
-                          args=([para[m]]), method='LSODA') 
+    solution = solve_ivp(models[m_idx], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
+                          args=([para[m_idx]]), method=intMethod) 
     
     #post transient
     IC = solution.y[:,solution.y.shape[1]-1]
-    solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
-                          t_eval=time, args=([para[m]]), method='LSODA') 
+    solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+                          t_eval=time, args=([para[m_idx]]), method=intMethod) 
         
     xGrad = np.gradient(solution.y[0,:])
     
-    if m==0:
+    if m_idx==0:
         peaks_out, _ = find_peaks(xGrad,height=0.15)
     else:
         peaks_out, _ = find_peaks(xGrad,height=0.33)
@@ -82,40 +95,39 @@ for m in range(3):
 loadData = True
 
 dt = 0.05
-A_range = np.linspace(0.0,0.25,40)
+A_range = np.linspace(0.0,0.25,40) # Amplitudes
 A_range[A_range==0.0] = A_range[1]/2
-fold_unforced = np.logspace(-1,1,200)
+fold_unforced = np.logspace(-1,1,200) # forcing frequencies
 
 
 if loadData == False:
-    for m in [0,1,2]:
+    for m_idx in [0,1,2]:
     
-        t_end = 60*T0[m]; npts = int(t_end/dt); time = np.linspace(0,t_end,npts+1)  
+        t_end = 60*T0[m_idx]; npts = int(t_end/dt); time = np.linspace(0,t_end,npts+1)  
         
-        omega_range = fold_unforced*2*np.pi/T0[m]
+        omega_range = fold_unforced*2*np.pi/T0[m_idx]
         
         T_inp = np.zeros((A_range.shape[0],omega_range.shape[0]))
         T_out = np.zeros((A_range.shape[0],omega_range.shape[0]))
         
-        for i in range(A_range.shape[0]):
-            print(i)
+        for i in tqdm(range(A_range.shape[0]), desc=f"Simulations Arnold tongues (Figure 2a), model {m_idx}"):
             for j in range(omega_range.shape[0]):
                 
                 A = A_range[i]
                 omega = omega_range[j]
                 para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A,omega]]
                                 
-                solution = solve_ivp(models[m], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
-                                      args=([para[m]]), method='LSODA') 
+                solution = solve_ivp(models[m_idx], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
+                                      args=([para[m_idx]]), method=intMethod) 
                 
                 #post transient
                 IC = solution.y[:,solution.y.shape[1]-1]
-                solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
-                                      t_eval=time, args=([para[m]]), method='LSODA')           
+                solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+                                      t_eval=time, args=([para[m_idx]]), method=intMethod)           
                 xGrad = np.gradient(solution.y[0,:])
                 
                 
-                if m==0:
+                if m_idx==0:
                     peaks_out, _ = find_peaks(xGrad,height=0.15)
                 else:
                     peaks_out, _ = find_peaks(xGrad,height=0.33)
@@ -127,27 +139,27 @@ if loadData == False:
                 
                 T_inp[i,j] = 2*np.pi/omega 
                 T_out[i,j] = np.mean(t_out)
-        if m==0:
-            np.save('T_inp_'+str(m)+'_tau_'+"{:.0f}".format(tau)+'.npy', T_inp)
-            np.save('T_out_'+str(m)+'_tau_'+"{:.0f}".format(tau)+'.npy', T_out)
+        if m_idx==0:
+            np.save('data_plotting\T_inp_'+str(m_idx)+'_tau_'+"{:.0f}".format(tau)+'.npy', T_inp)
+            np.save('data_plotting\T_out_'+str(m_idx)+'_tau_'+"{:.0f}".format(tau)+'.npy', T_out)
         else:
-            np.save('T_inp_'+str(m)+'.npy', T_inp)
-            np.save('T_out_'+str(m)+'.npy', T_out)
+            np.save('data_plotting\T_inp_'+str(m_idx)+'.npy', T_inp)
+            np.save('data_plotting\T_out_'+str(m_idx)+'.npy', T_out)
 
 # calculate and plot Arnold tongues
 
-sections = [[0.9,1.1],[1.5,4.6],[0.1,5.6]] # red lines indicating phase difference plots 
+sections = [[0.9,1.1],[1.5,4.6],[0.1,5.6]] # red lines indicating frequency difference plots 
 aTs = []
 
-for m in [0,1,2]:
-    if m==0:
-        T_out = np.load('T_out_'+str(m)+'_tau_'+"{:.0f}".format(tau)+'.npy')
-        T_inp = np.load('T_inp_'+str(m)+'_tau_'+"{:.0f}".format(tau)+'.npy')
+for m_idx in [0,1,2]:
+    if m_idx==0:
+        T_out = np.load('data_plotting\T_out_'+str(m_idx)+'_tau_'+"{:.0f}".format(tau)+'.npy')
+        T_inp = np.load('data_plotting\T_inp_'+str(m_idx)+'_tau_'+"{:.0f}".format(tau)+'.npy')
     else:
-        T_out = np.load('T_out_'+str(m)+'.npy')
-        T_inp = np.load('T_inp_'+str(m)+'.npy')
+        T_out = np.load('data_plotting\T_out_'+str(m_idx)+'.npy')
+        T_inp = np.load('data_plotting\T_inp_'+str(m_idx)+'.npy')
     
-    omega_range = fold_unforced*2*np.pi/T0[m]
+    omega_range = fold_unforced*2*np.pi/T0[m_idx]
     
     fig = plt.figure(figsize=(8.6*2/3*inCm,4*inCm))
     
@@ -206,14 +218,14 @@ for m in [0,1,2]:
             lbls.append(ratio_lbls[i])
             area += area_percent
     
-    xmin = np.argmin(np.abs(fold_unforced-sections[m][0]))
-    xmax = np.argmin(np.abs(fold_unforced-sections[m][1]))
+    xmin = np.argmin(np.abs(fold_unforced-sections[m_idx][0]))
+    xmax = np.argmin(np.abs(fold_unforced-sections[m_idx][1]))
     
     plt.hlines(20,xmin,xmax,color='r',linestyles='dashed',lw=1)
         
     # largest Lyapunov exponents
     if loadData == False:
-        if m == 0:
+        if m_idx == 0:
             nth = 5
         else:
             nth = 3
@@ -225,7 +237,7 @@ for m in [0,1,2]:
         
         fold_unforced = np.logspace(-1,1,200)
         fold_unforced_r = fold_unforced[::nth]
-        omega_range_r = fold_unforced_r*2*np.pi/T0[m]
+        omega_range_r = fold_unforced_r*2*np.pi/T0[m_idx]
         
         aT_reduced = np.copy(aT[::nth,::nth])
         
@@ -238,7 +250,7 @@ for m in [0,1,2]:
             omega = omega_range_r[idcs_LLE[1,i]]
             para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A,omega]]
             
-            LLE = fun.maxLyap('LSODA', models_aut_trans[m], para[m], np.array([0.1,0.1,0]), jacobians[m], max(20*T0[m], 200), dt, max(2*T0[m], 50), plotFit=False)
+            LLE = fun.maxLyap(intMethod, models_aut_trans[m_idx], para[m_idx], np.array([0.1,0.1,0]), jacobians[m_idx], max(20*T0[m_idx], 200), dt, max(2*T0[m_idx], 50), plotFit=False)
 
             x = np.where(fold_unforced == fold_unforced_r[idcs_LLE[1,i]])[0][0]
             y = np.where(A_range == A_range_r[idcs_LLE[0,i]])[0][0]
@@ -246,17 +258,17 @@ for m in [0,1,2]:
         
         LLEs_AT = np.asarray(LLEs)
         
-        np.save('LLEs_AT_mod'+str(m)+'.npy',LLEs_AT)
+        np.save('data_plotting\LLEs_AT_mod'+str(m_idx)+'.npy',LLEs_AT)
       
     try:
-        LLEs_AT = np.load('LLEs_AT_mod'+str(m)+'.npy')
+        LLEs_AT = np.load('data_plotting\LLEs_AT_mod'+str(m_idx)+'.npy')
         for i in range(LLEs_AT.shape[0]):
             x,y = LLEs_AT[i,1:]
             if LLEs_AT[i,0]>0.02:
                 plt.plot(x,39-y,'xc', markeredgecolor='c',ms=1.25) #x shifted by -2 for plotting purposes only
         
     except:
-        print('LLEs_AT_mod'+str(m)+'.npy not found!')
+        print('LLEs_AT_mod'+str(m_idx)+'.npy not found!')
             
     plt.title('   '.join(l for l in lbls[1:]),fontsize=8)
     
@@ -270,7 +282,7 @@ for m in [0,1,2]:
     plt.subplots_adjust(top=1.0,
     bottom=0.155, left=0.195, right=1.0, hspace=0.145, wspace=0.18)
     
-    plt.savefig('Fig2a_'+str(m)+'.svg')
+    plt.savefig('Fig2a_'+str(m_idx)+'.svg')
     
     # plot individual tongues
     # plt.figure()
@@ -297,23 +309,22 @@ loadData = True
 
 # simulations
 if loadData == False:
-    for m in range(3):
-        t_end = 60*T0[m]; dt = 0.01
-        rmin = np.log10(sections[m][0])
-        rmax = np.log10(sections[m][1])
+    for m_idx in range(3):
+        t_end = 60*T0[m_idx]; dt = 0.01
+        rmin = np.log10(sections[m_idx][0])
+        rmax = np.log10(sections[m_idx][1])
         fold_unforced = np.logspace(rmin,rmax,30)
-        omega_range = fold_unforced*2*np.pi/T0[m]
+        omega_range = fold_unforced*2*np.pi/T0[m_idx]
         
         om_inp_sig = []
         om_out_sig = []
         om_out_sd_sig = []
         
         def wrapper(z,t,p):
-            return models[m](t,z,p)
+            return models[m_idx](t,z,p)
         
-        for sig in sigma_range:
-            print(sig)
-        
+        for sig in tqdm(sigma_range, desc=f"Simulations Figure 2b, model {m_idx}"):
+
             om_inp = np.zeros(omega_range.shape[0])
             om_out = np.zeros(omega_range.shape[0])
             om_out_sd = np.zeros(omega_range.shape[0])
@@ -323,15 +334,15 @@ if loadData == False:
                 para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A,omega]]
                 
                 #transient phase
-                time, simDat = fun.RK4_na_noisy(wrapper,para[m],np.array([0.1,0.1]),-T0[m],dt,0,nVec, sig, naFun = None,naFunParams = None)
+                time, simDat = fun.RK4_na_noisy(wrapper,para[m_idx],np.array([0.1,0.1]),-T0[m_idx],dt,0,nVec, sig, naFun = None,naFunParams = None)
                 #post transient
                 IC = simDat[:,simDat.shape[1]-1]
-                time, simDat = fun.RK4_na_noisy(wrapper,para[m],IC,0,dt, t_end,nVec, sig, naFun = None,naFunParams = None)
+                time, simDat = fun.RK4_na_noisy(wrapper,para[m_idx],IC,0,dt, t_end,nVec, sig, naFun = None,naFunParams = None)
                 
                 
                 xGrad = np.gradient(simDat[0,:])
                 
-                if m==0:
+                if m_idx==0:
                     peaks_out, _ = find_peaks(xGrad,height=0.025)
                 else:
                     peaks_out, _ = find_peaks(xGrad,height=0.33)
@@ -351,75 +362,74 @@ if loadData == False:
             om_out_sd_sig.append(om_out_sd)
             
         FreqDiffPlot = np.asarray([om_inp_sig,om_out_sig,om_out_sd_sig])
-        np.save('FreqDiffPlot_'+str(m)+'.npy', FreqDiffPlot)
+        np.save('data_plotting\FreqDiffPlot_'+str(m_idx)+'.npy', FreqDiffPlot)
     
 
-# phase difference plots
+# frequency difference plots
 
-for m in range(3):
+for m_idx in range(3):
 
-    rmin = np.log10(sections[m][0])
-    rmax = np.log10(sections[m][1])
+    rmin = np.log10(sections[m_idx][0])
+    rmax = np.log10(sections[m_idx][1])
     fold_unforced = np.logspace(rmin,rmax,30) 
 
-    FreqDiffPlot = np.load('FreqDiffPlot_'+str(m)+'.npy')
+    FreqDiffPlot = np.load('data_plotting\FreqDiffPlot_'+str(m_idx)+'.npy')
     
     om_inp_sig,om_out_sig,om_out_sd_sig =FreqDiffPlot
     
     
     fig = plt.figure(figsize=(8.6*2/3*inCm,4*inCm))
     
-    colors = ['k','r','m','b']
+    colors_ = ['k','r','m','b']
     
     for i in [2,1,0]:
     
-        plt.fill_between(fold_unforced,om_out_sig[i]-om_inp_sig[i] + om_out_sd_sig[i],om_out_sig[i]-om_inp_sig[i]-om_out_sd_sig[i],color=colors[i],alpha=0.15)
+        plt.fill_between(fold_unforced,om_out_sig[i]-om_inp_sig[i] + om_out_sd_sig[i],om_out_sig[i]-om_inp_sig[i]-om_out_sd_sig[i],color=colors_[i],alpha=0.15)
         if i == 0:
-            plt.plot(fold_unforced,om_out_sig[i]-om_inp_sig[i],color=colors[i],linestyle='dashed',label='$\sigma=$'+ str(sigma_range[i]))
+            plt.plot(fold_unforced,om_out_sig[i]-om_inp_sig[i],color=colors_[i],linestyle='dashed',label='$\sigma=$'+ str(sigma_range[i]))
         else:
-            plt.plot(fold_unforced,om_out_sig[i]-om_inp_sig[i],color=colors[i],label='$\sigma=$'+ str(sigma_range[i]))
+            plt.plot(fold_unforced,om_out_sig[i]-om_inp_sig[i],color=colors_[i],label='$\sigma=$'+ str(sigma_range[i]))
     
     plt.xscale('log')
-    plt.xticks(fold_unforced[[0,14,29]],labels=np.round(fold_unforced[[0,14,29]], decimals=1+int(m==0)),fontsize=6)
+    plt.xticks(fold_unforced[[0,14,29]],labels=np.round(fold_unforced[[0,14,29]], decimals=1+int(m_idx==0)),fontsize=6)
     plt.gca().xaxis.set_minor_locator(plt.NullLocator())
     
     plt.xlabel('$\omega$ / $\omega_{0}$')
     plt.ylabel('$\Omega - \omega$')              
     plt.subplots_adjust(top=0.825, bottom=0.345, left=0.2, right=0.84, hspace=0.145, wspace=0.18)
     
-    plt.ylim([[-0.005,0.005],[-0.05,0.1],[-0.015,0.015]][m])
+    plt.ylim([[-0.005,0.005],[-0.05,0.1],[-0.015,0.015]][m_idx])
     
-    plt.savefig('Fig2b_'+str(m)+'.svg')
+    plt.savefig('Fig2b_'+str(m_idx)+'.svg')
     
 
-#%% Figure 2c - ISI histograms
+#%% Figure 2c - Interspike-intervals (ISIs) histograms
 
 lbls = ['$VdP$','$VdP_{1g}$','$VdP_{2g}$']
 A = 0.125; fold_unforced = np.logspace(-1,1,200)
 
-for m in range(3):
-    t_end = 60*T0[m];  npts = int(t_end/dt); time = np.linspace(0,t_end,npts+1)  
-    omega_range = fold_unforced*2*np.pi/T0[m]
+for m_idx in range(3):
+    t_end = 60*T0[m_idx];  npts = int(t_end/dt); time = np.linspace(0,t_end,npts+1)  
+    omega_range = fold_unforced*2*np.pi/T0[m_idx]
         
     # determine ISIs
     
     ISIs= []
     
-    for i in range(len(omega_range)):
-        print('Figure 2c: simulation '  +str(33.3*m+100*i/len(omega_range)/3) + '% complete')
+    for i in tqdm(range(len(omega_range)),desc=f"Simulations ISI histograms (Figure 2c), model {m_idx}"):
         omega = omega_range[i]
         para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A,omega]]
         
-        solution = solve_ivp(models[m], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
-                              args=([para[m]]), method='LSODA') 
+        solution = solve_ivp(models[m_idx], (0,t_tr), np.array([0.1,0.1]), rtol=1.e-6, atol=1.e-6,
+                              args=([para[m_idx]]), method=intMethod) 
         
         #post transient
         IC = solution.y[:,solution.y.shape[1]-1]
-        solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
-                              t_eval=time, args=([para[m]]), method='LSODA')       
+        solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+                              t_eval=time, args=([para[m_idx]]), method=intMethod)       
         
         xGrad = np.gradient(solution.y[0,:])
-        if m==0:
+        if m_idx==0:
             peaks_out, _ = find_peaks(xGrad,height=0.15)
         else:
             peaks_out, _ = find_peaks(xGrad,height=0.33)
@@ -434,14 +444,14 @@ for m in range(3):
     n = len(omega_range)
     
     isi_max = 0
-    isi_min = T0[m]
+    isi_min = T0[m_idx]
     for i in range(n):
         if max(ISIs[i])>isi_max:
             isi_max = max(ISIs[i])
         if min(ISIs[i])<isi_min:
             isi_min = min(ISIs[i])
         
-    if m != 0:
+    if m_idx != 0:
         isi_min = 0
     
     nbins = 60
@@ -466,7 +476,7 @@ for m in range(3):
     cbar = fig.colorbar(cw)
     cbar.set_label('$p$',rotation=0)
     
-    if m==0:
+    if m_idx==0:
         plt.yticks(np.arange(yAx.shape[0])[1:yAx.shape[0]:10],labels=np.round(yAx[1:yAx.shape[0]:10], decimals=1),fontsize=6)
     else:
         plt.yticks(np.arange(yAx.shape[0])[1:yAx.shape[0]:6],labels=np.round(yAx[1:yAx.shape[0]:6], decimals=0),fontsize=6)
@@ -477,17 +487,17 @@ for m in range(3):
     plt.ylabel('ISI (a.u.)')
     plt.subplots_adjust(top=1.0, bottom=0.11, left=0.185, right=0.99, hspace=0.2, wspace=0.2)
 
-    plt.savefig('Fig2c_'+str(m)+'.png', dpi=400)
-    plt.savefig('Fig2c_'+str(m)+'.svg')
+    plt.savefig('Fig2c_'+str(m_idx)+'.png', dpi=400)
+    plt.savefig('Fig2c_'+str(m_idx)+'.svg')
     
 
 #%% Figure 2d - chaotic time course VdP2G system
 
-m = 2; dt = 0.05
+m_idx = 2; dt = 0.05
 
 A = 0.125
 fold_unforced = 8.5
-omega = fold_unforced*2*np.pi/T0[m]
+omega = fold_unforced*2*np.pi/T0[m_idx]
     
 plt.figure(figsize=(8.6*inCm,4*inCm))
 
@@ -495,23 +505,23 @@ t_end = 200; npts = int(t_end/dt); time = np.linspace(0,t_end,npts+1)
 para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A,omega]]
 
 #transient phase
-solution = solve_ivp(models[m], (0,t_tr), np.array([0.12,0.1]), rtol=1.e-6, atol=1.e-6,
-                      args=([para[m]]), method=intMethod) 
+solution = solve_ivp(models[m_idx], (0,t_tr), np.array([0.12,0.1]), rtol=1.e-6, atol=1.e-6,
+                      args=([para[m_idx]]), method=intMethod) 
 
 #post transient
 IC = solution.y[:,solution.y.shape[1]-1]
-solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
-                      t_eval=time, args=([para[m]]), method=intMethod) 
+solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+                      t_eval=time, args=([para[m_idx]]), method=intMethod) 
 
-plt.plot(time, solution.y[0,:], color=colors[m],lw=1.5)
+plt.plot(time, solution.y[0,:], color=colors[m_idx],lw=1.5)
 
 #post transient - perturbed
-LLE = fun.maxLyap(intMethod, models_aut_trans[m], para[m], np.array([0.1,0.1,0]), jacobians[m], max(20*T0[m], 500), dt, max(5*T0[m], 100))
+LLE = fun.maxLyap(intMethod, models_aut_trans[m_idx], para[m_idx], np.array([0.1,0.1,0]), jacobians[m_idx], max(20*T0[m_idx], 500), dt, max(5*T0[m_idx], 100))
 
 if LLE > 0.01:
-    solution = solve_ivp(models[m], (0,t_end), IC+np.array([-0.01,0.01]), rtol=1.e-6, atol=1.e-6,
-                          t_eval=time, args=([para[m]]), method=intMethod) 
-    plt.plot(time, solution.y[0,:],'-',color=colors[m],lw=2, alpha=0.4)
+    solution = solve_ivp(models[m_idx], (0,t_end), IC+np.array([-0.01,0.01]), rtol=1.e-6, atol=1.e-6,
+                          t_eval=time, args=([para[m_idx]]), method=intMethod) 
+    plt.plot(time, solution.y[0,:],'-',color=colors[m_idx],lw=2, alpha=0.4)
     
 plt.plot(time, A*np.sin(omega*time),'g',alpha=0.7,lw=0.75)
 plt.xlabel('time (a.u.)'); plt.ylabel('x')
@@ -521,12 +531,12 @@ plt.tight_layout()
 plt.savefig('Fig2d.svg')
 
     
-#%% Figure 2e
+#%% Figure 2e - indicators for chaos
 
 loadData = True
 
 # simulation 
-m = 2
+m_idx = 2
 A = 0.125
 
 n = 100
@@ -544,19 +554,19 @@ LLE_allMods = []
 
 # calculate LLEs for all three models
 if loadData == False:
-    for m in range(3):
-        omega_range = fold_unforced*2*np.pi/T0[m]
+    for m_idx in range(3):
+        omega_range = fold_unforced*2*np.pi/T0[m_idx]
         LLEs = []
-        for i in range(len(fold_unforced)):
-            print('Figure 2c: simulation '  +str(33.3*m+100*i/len(fold_unforced)/3) + '% complete')
+        for i in tqdm(range(len(fold_unforced)),desc=f"Figure 2e, largest Lyapunov exponents for model {m_idx}"):
+            print('Figure 2c: simulation '  +str(33.3*m_idx+100*i/len(fold_unforced)/3) + '% complete')
             omega = omega_range[i]
             para = [[eps,tau,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A,omega]]
-            LLE = fun.maxLyap(intMethod, models_aut_trans[m], para[m], np.array([0.1,0.1,0]), jacobians[m], max(20*T0[m], 300), dt, max(5*T0[m], 80))
+            LLE = fun.maxLyap(intMethod, models_aut_trans[m_idx], para[m_idx], np.array([0.1,0.1,0]), jacobians[m_idx], max(20*T0[m_idx], 300), dt, max(5*T0[m_idx], 80))
             LLEs.append(LLE)
         LLE_allMods.append(LLEs)
     
     LLEs = np.asarray(LLE_allMods)  
-    np.save('fig2e_LLEs.npy', np.vstack((fold_unforced, LLEs)))
+    np.save('data_plotting\fig2e_LLEs.npy', np.vstack((fold_unforced, LLEs)))
 
 
 #  Orbit diagram
@@ -565,8 +575,8 @@ if loadData == False:
     # simulation
     dt = 0.005
     
-    t_end = 50*T0[m]; npts = int(t_end/dt); time = np.linspace(0,t_end,npts+1)  
-    omega_range = fold_unforced*2*np.pi/T0[m]
+    t_end = 50*T0[m_idx]; npts = int(t_end/dt); time = np.linspace(0,t_end,npts+1)  
+    omega_range = fold_unforced*2*np.pi/T0[m_idx]
     
     trajectories = []
     for i in range(len(omega_range)):
@@ -578,13 +588,13 @@ if loadData == False:
         para = [[eps,A,omega],[eps,a_bif[0]-eps_bif,A,omega],[eps,a_bif[1]-eps_bif,A,omega]]
         
         #transient phase
-        solution = solve_ivp(models[m], (0,t_tr), np.array([0.12,0.1]), rtol=1.e-6, atol=1.e-6,
-                              args=([para[m]]), method=intMethod) 
+        solution = solve_ivp(models[m_idx], (0,t_tr), np.array([0.12,0.1]), rtol=1.e-6, atol=1.e-6,
+                              args=([para[m_idx]]), method=intMethod) 
         
         #post transient
         IC = solution.y[:,solution.y.shape[1]-1]
-        solution = solve_ivp(models[m], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
-                              t_eval=time, args=([para[m]]), method=intMethod)
+        solution = solve_ivp(models[m_idx], (0,t_end), IC, rtol=1.e-6, atol=1.e-6,
+                              t_eval=time, args=([para[m_idx]]), method=intMethod)
         
         trajectories.append(solution.y)
         
@@ -639,13 +649,13 @@ if loadData == False:
     for i in range(len(sections)):
         m_sections[i,:sections[i].shape[0]] = sections[i][:,1]
         
-    np.save('fig2e_orbit.npy', m_sections)
+    np.save('data_plotting\fig2e_orbit.npy', m_sections)
 
 
 
 # plot
-m_sections = np.load('fig2e_orbit.npy')
-LLE_load = np.load('fig2e_LLEs.npy')
+m_sections = np.load(r'data_plotting\fig2e_orbit.npy')
+LLE_load = np.load(r'data_plotting\fig2e_LLEs.npy')
 fold_unforced = LLE_load[0,:]
 LLEs = LLE_load[1:,:]
 

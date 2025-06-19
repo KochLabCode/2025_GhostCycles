@@ -1,0 +1,38 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# Morris-Lecar Neuron model as described in https://doi.org/10.1016/j.neucom.2005.03.006
+# Used to produce bifurcation diagram shown in Figure 6a of the paper:
+#
+# Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+# Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+# Physical Review E, XX: XXXX-XXXX.
+# 
+# Copyright: Daniel Koch
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+int v=-25,n=1
+
+minf(v)=0.5*(1+tanh((v-v1)/v2))
+ninf(v)=0.5*(1+tanh((v-v3)/v4))
+taun(v)=1/(phi*cosh((v-v3)/(2*v4)))
+
+
+dv/dt=(-gl*(v-vl)-gca*minf(v)*(v-vca)-gk*n*(v-vk)+Iext)/cm
+dn/dt=(ninf(v)-n)/taun(v)
+
+param Iext=130, v1=-1.2,v2=18,cm=20,gk=8,gl=2,vca=120,vk=-80,vl=-60
+# type I
+param gca=4,phi=0.06667,v3=12,v4=17.4
+# type II
+# param gca=4.4,phi=0.04,v3=2,v4=30
+
+
+@ meth=cvode,dt=0.01,total=250,maxstor=10000
+@ xp=v,yp=n,bound=1000000
+@ xlo=-60,xhi=50,ylo=-0.1,yhi=0.5
+​
+# Some AUTO parameters
+@ autovar=x,autoxmin=0,autoymin=-50,autoxmax=130,autoymax=50
+@ ntst=400,nmax=2500,npr=500,ds=-0.001,dsmin=0.0001,dsmax=0.05
+@ ncol=4,epsl=1e-4,parmin=0,parmax=130,normmin=0,normmax=1000
+@ epsu=1e-4,epss=0.0001
+done

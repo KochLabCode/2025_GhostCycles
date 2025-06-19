@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov 21 17:40:45 2023
+This code reproduces Figure 3 from the paper:
 
-@author: Daniel Koch
+    Daniel Koch, Ulrike Feudel, Aneta Koseska (2025):
+    Criticality governs response dynamics and entrainment of periodically forced ghost cycles.
+    Physical Review E, XX: XXXX-XXXX.
+    
+Copyright: Daniel Koch
 """
 
 # Import packages and modules
@@ -34,25 +38,30 @@ ymin=-2;ymax=2
 
 xmid=0; ymid=0
 
+# grid resolution
 Ng=100
 x_range=np.linspace(xmin,xmax,Ng)
 y_range=np.linspace(ymin,ymax,Ng)
 grid_ss = np.meshgrid(x_range, y_range)
 Xg,Yg=grid_ss
 
+
+# models and parameters
+
 eps = 0.02; tau = 16.5
-a_bif = [7.131, 3.145]; eps_bif = 0.01
+a_bif = [7.131, 3.145] # positions of SNIC bifurcations
+eps_bif = 0.01
 ampVect = [0.2,0,-0.2]
 
 jacobians = [mod.jac_vdp,mod.jac_vdp1g, mod.jac_vdp2g]
 
-#%%  Figure 3a 
+#%%  Figure 3a
 
 # Van der Pol
 def flow_model(t,z):
     return mod.vanDerPol_constForce(t,z,para)
 
-m=0
+m_idx=0
 
 # parameters
 for i in range(3):
@@ -81,7 +90,7 @@ for i in range(3):
     for ii in range(intersecPts.shape[1]):
         x,y=intersecPts[:,ii]
         
-        eigenvalues, eigenvectors = np.linalg.eig(jacobians[m](x,y,para[0],para[1]))
+        eigenvalues, eigenvectors = np.linalg.eig(jacobians[m_idx](x,y,para[0],para[1]))
 
         if any(eigenvalues<0):
             if any(eigenvalues>0): #saddle
@@ -114,7 +123,7 @@ for i in range(3):
 def flow_model(t,z):
     return mod.vanDerPol_1g_constForce(t,z,para)
 
-m=1
+m_idx=1
 
 # parameters
 for i in range(3):
@@ -143,7 +152,7 @@ for i in range(3):
     for ii in range(intersecPts.shape[1]):
         x,y=intersecPts[:,ii]
         
-        eigenvalues, eigenvectors = np.linalg.eig(jacobians[m](x,y,para[0],para[1]))
+        eigenvalues, eigenvectors = np.linalg.eig(jacobians[m_idx](x,y,para[0],para[1]))
 
         if any(eigenvalues<0):
             if any(eigenvalues>0): #saddle
@@ -175,7 +184,7 @@ for i in range(3):
 def flow_model(t,z):
     return mod.vanDerPol_2g_constForce(t,z,para)
 
-m=2
+m_idx=2
 
 # parameters
 for i in range(3):
@@ -204,7 +213,7 @@ for i in range(3):
     for ii in range(intersecPts.shape[1]):
         x,y=intersecPts[:,ii]
         
-        eigenvalues, eigenvectors = np.linalg.eig(jacobians[m](x,y,para[0],para[1]))
+        eigenvalues, eigenvectors = np.linalg.eig(jacobians[m_idx](x,y,para[0],para[1]))
 
         if any(eigenvalues<0):
             if any(eigenvalues>0): #saddle
